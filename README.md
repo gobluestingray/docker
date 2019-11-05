@@ -62,6 +62,15 @@ docker_db_1    docker-entrypoint.sh postgres   Up      5432/tcp
 docker_web_1   /entrypoint.sh odoo             Up      0.0.0.0:8069->8069/tcp, 8071/tcp
 ```
 
+Stopping Containers from this Repo
+======
+
+In order to stop running containers, use:
+
+```
+docker-compose stop
+```
+
 Tagging and Pushing Images to Docker Hub
 ======
 
