@@ -13,7 +13,6 @@ RUN set -x; \
         && apt-get install -y --no-install-recommends \
             ca-certificates \
             curl \
-            wait-for-it \
             dirmngr \
             fonts-noto-cjk \
             gnupg \
@@ -26,8 +25,10 @@ RUN set -x; \
             python3-qrcode \
             python3-renderpm \
             python3-setuptools \
+            python3-slugify \
             python3-vobject \
             python3-watchdog \
+            python3-xlrd \
             python3-xlwt \
             xz-utils \
         && curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb \
@@ -37,7 +38,7 @@ RUN set -x; \
 
 # install latest postgresql-client
 RUN set -x; \
-        echo 'deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main' > etc/apt/sources.list.d/pgdg.list \
+        echo 'deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
         && export GNUPGHOME="$(mktemp -d)" \
         && repokey='B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8' \
         && gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "${repokey}" \
@@ -50,8 +51,8 @@ RUN set -x; \
 
 # Install Odoo
 ENV ODOO_VERSION 11.0
-ARG ODOO_RELEASE=20191009
-ARG ODOO_SHA=20f17b7c6c7206cc799c652964d09d4a27a22715
+ARG ODOO_RELEASE=20200121
+ARG ODOO_SHA=13f30434cb4fb28b11d78fd4e7c616d03362f779
 RUN set -x; \
         curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/odoo_${ODOO_VERSION}.${ODOO_RELEASE}_all.deb \
         && echo "${ODOO_SHA} odoo.deb" | sha1sum -c - \
@@ -63,11 +64,11 @@ RUN set -x; \
 # Copy entrypoint script and Odoo configuration file
 COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
-RUN chown odoo /etc/odoo/odoo.conf
 
 # Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
-RUN mkdir -p /mnt/extra-addons \
-        && chown -R odoo /mnt/extra-addons
+RUN chown odoo /etc/odoo/odoo.conf \
+    && mkdir -p /mnt/extra-addons \
+    && chown -R odoo /mnt/extra-addons
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 
 # Expose Odoo services
@@ -75,6 +76,8 @@ EXPOSE 8069 8071
 
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
+
+COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
 # Set default user when running the container
 USER odoo
